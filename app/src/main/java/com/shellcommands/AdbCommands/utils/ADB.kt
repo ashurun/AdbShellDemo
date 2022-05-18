@@ -54,10 +54,15 @@ class ADB(private val context: Context) {
     /**
      * Where shell output is stored
      */
+    @Suppress("DEPRECATION")
     val path : File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-    val file  = File(path,"AdbLog.txt")
+    private val current = System.currentTimeMillis()
+    private val file : File = File(path,"AdbLogs-${current}.txt")
+
     val outputBufferFile: File = File.createTempFile("buffer", ".txt").copyTo(file,true,
         DEFAULT_BUFFER_SIZE)
+
+
     /**
      * Single shell instance where we can pipe commands to
      */
