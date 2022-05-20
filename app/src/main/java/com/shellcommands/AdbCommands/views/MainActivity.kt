@@ -84,10 +84,7 @@ class MainActivity : AppCompatActivity() {
             AdapterView.OnItemClickListener { parent, view, position, id ->
                 when (position) {
                     0 -> {
-                        @SuppressLint("SimpleDateFormat")
-                        val date = SimpleDateFormat("dd-MM-yyyy").format(Date())
-                        val time = SimpleDateFormat("HH-mm-ss").format(Date())
-//                        viewModel.adb.sendToShellProcess("cd sdcard/documents && mkdir AllLogs && cd AllLogs && logcat -d > Date-${date},Time-${time}Logs.txt & logcat_pid=$!")
+                        viewModel.adb.startLogs()
                         output.append("Launching Logcat Command.\n")
                     }
                     1 -> {
@@ -127,6 +124,7 @@ class MainActivity : AppCompatActivity() {
                         if (!(commandContainer.visibility == View.VISIBLE)) {
                             commandContainer.visibility = View.VISIBLE
                             output.append("Typing Manual Command.\n")
+                            command.requestFocus()
                         } else {
                             commandContainer.visibility = View.GONE
                         }
@@ -181,7 +179,9 @@ class MainActivity : AppCompatActivity() {
             output.text = it
             outputScrollView.post {
                 outputScrollView.fullScroll(ScrollView.FOCUS_DOWN)
-//                command.requestFocus()
+                if (commandContainer.visibility == View.VISIBLE){
+                    command.requestFocus()
+                }
                 val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.showSoftInput(command, InputMethod.SHOW_EXPLICIT)
             }

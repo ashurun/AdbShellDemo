@@ -293,4 +293,20 @@ class ADB(private val context: Context) {
             }
         }
     }
+
+    fun startLogs() {
+        @SuppressLint("SimpleDateFormat")
+        val date = SimpleDateFormat("dd-MM-yyyy").format(Date())
+        val time = SimpleDateFormat("HH-mm-ss").format(Date())
+        generateLogFile(date,time)
+
+    }
+
+    fun clearLogBuffer() {
+        sendToShellProcess("logcat -c")
+    }
+
+    fun generateLogFile(date:String,time:String) {
+        sendToShellProcess("cd sdcard/documents && logcat -d > Date-${date},Time-${time}Logs.txt & logcat_pid=$!")
+    }
 }
