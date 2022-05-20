@@ -19,6 +19,8 @@ import java.io.File
 import java.io.IOException
 import java.io.PrintStream
 import java.lang.NumberFormatException
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 @Suppress("DEPRECATION")
@@ -56,11 +58,14 @@ class ADB(private val context: Context) {
      */
     @Suppress("DEPRECATION")
     val path : File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-    private val current = System.currentTimeMillis()
-    private val file : File = File(path,"AdbLogs-${current}.txt")
+    @SuppressLint("SimpleDateFormat")
+    private var fileName = SimpleDateFormat("hh-mm-ss").format(Date())
+    private val file : File = File(path,"Logs${fileName}.txt")
 
-    val outputBufferFile: File = File.createTempFile("buffer", ".txt").copyTo(file,true,
-        DEFAULT_BUFFER_SIZE)
+//    val outputBufferFile: File = File.createTempFile("buffer", ".txt").copyTo(file,true,
+//        DEFAULT_BUFFER_SIZE)
+
+    val outputBufferFile: File = File.createTempFile("buffer", ".txt").also { it.deleteOnExit() }
 
 
     /**

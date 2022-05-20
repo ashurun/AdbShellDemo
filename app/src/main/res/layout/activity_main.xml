@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <ProgressBar
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -9,23 +10,61 @@
         android:layout_marginTop="-6dp"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:id="@+id/progress" />
+    <Button
+        android:id="@+id/resetBtn"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:text="Reset"
+        android:layout_below="@+id/progress"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="-3dp" />
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/dropDownMenuLayout"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_alignParentTop="true"
+        android:visibility="gone">
+
+        <AutoCompleteTextView
+            android:id="@+id/cmdTextView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:inputType="none"
+            android:text="Choose Command to run"
+            />
+
+    </com.google.android.material.textfield.TextInputLayout>
 
     <ScrollView
+        android:id="@+id/output_scrollview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/command_container"
-        android:layout_margin="8dp"
-        android:id="@+id/output_scrollview">
+        android:layout_alignParentTop="true"
+        android:layout_centerInParent="true"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp">
+
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
             <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/output"
+                style="@style/TextAppearance.AppCompat.Body1"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:textSize="12sp"
                 android:textIsSelectable="true"
-                style="@style/TextAppearance.AppCompat.Body1"
-                android:id="@+id/output" />
+                android:textSize="12sp" />
         </HorizontalScrollView>
     </ScrollView>
 
@@ -36,6 +75,7 @@
         android:layout_marginBottom="8dp"
         android:layout_alignParentBottom="true"
         android:id="@+id/command_container"
+        android:visibility="gone"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
         <com.google.android.material.textfield.TextInputEditText
             android:layout_width="match_parent"
@@ -45,4 +85,5 @@
             android:enabled="false"
             android:id="@+id/command" />
     </com.google.android.material.textfield.TextInputLayout>
+
 </RelativeLayout>

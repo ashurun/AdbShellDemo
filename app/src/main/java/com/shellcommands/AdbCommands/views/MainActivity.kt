@@ -1,27 +1,36 @@
 package com.shellcommands.AdbCommands.views
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.view.*
+import android.view.KeyEvent
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import android.view.inputmethod.InputMethod
 import android.view.inputmethod.InputMethodManager
-import android.widget.ProgressBar
-import android.widget.ScrollView
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
-import androidx.lifecycle.*
+import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
-import com.shellcommands.AdbCommands.BuildConfig
-import com.shellcommands.AdbCommands.R
-import com.shellcommands.AdbCommands.viewmodels.MainActivityViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.textview.MaterialTextView
-import kotlinx.coroutines.*
+import com.shellcommands.AdbCommands.BuildConfig
+import com.shellcommands.AdbCommands.R
+import com.shellcommands.AdbCommands.viewmodels.MainActivityViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.CountDownLatch
 import kotlin.system.exitProcess
 
@@ -34,6 +43,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var output: MaterialTextView
     private lateinit var outputScrollView: ScrollView
     private lateinit var progress: ProgressBar
+    private lateinit var dropDownMenuLayout: TextInputLayout
+    private lateinit var commandContainer: TextInputLayout
+    private lateinit var resetBtn: Button
 
     /* Alert dialogs */
     private lateinit var pairDialog: MaterialAlertDialogBuilder
@@ -44,10 +56,12 @@ class MainActivity : AppCompatActivity() {
 
     private var lastCommand = ""
 
-    var bookmarkGetResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        val text = it.data?.getStringExtra(Intent.EXTRA_TEXT) ?: return@registerForActivityResult
-        command.setText(text)
-    }
+    var bookmarkGetResult =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            val text =
+                it.data?.getStringExtra(Intent.EXTRA_TEXT) ?: return@registerForActivityResult
+            command.setText(text)
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +71,69 @@ class MainActivity : AppCompatActivity() {
         output = findViewById(R.id.output)
         outputScrollView = findViewById(R.id.output_scrollview)
         progress = findViewById(R.id.progress)
+        commandContainer = findViewById(R.id.command_container)
+        resetBtn = findViewById(R.id.resetBtn)
+        dropDownMenuLayout = findViewById(R.id.dropDownMenuLayout)
+
+
+        val commands = resources.getStringArray(R.array.command_list)
+        val arrayAdapter = ArrayAdapter(this, R.layout.dropdown, commands)
+        val cmdTextView = findViewById<AutoCompleteTextView>(R.id.cmdTextView)
+        cmdTextView.setAdapter(arrayAdapter)
+        cmdTextView.onItemClickListener =
+            AdapterView.OnItemClickListener { parent, view, position, id ->
+                when (position) {
+                    0 -> {
+                        @SuppressLint("SimpleDateFormat")
+                        val date = SimpleDateFormat("dd-MM-yyyy").format(Date())
+                        val time = SimpleDateFormat("HH-mm-ss").format(Date())
+//                        viewModel.adb.sendToShellProcess("cd sdcard/documents && mkdir AllLogs && cd AllLogs && logcat -d > Date-${date},Time-${time}Logs.txt & logcat_pid=$!")
+                        output.append("Launching Logcat Command.\n")
+                    }
+                    1 -> {
+                        viewModel.adb.sendToShellProcess("svc bluetooth enable")
+                        output.append("Enabling BlueTooth.\n")
+                    }
+
+                    2 -> {
+                        viewModel.adb.sendToShellProcess("svc bluetooth disable")
+                        output.append("Disabling BlueTooth.\n")
+                    }
+                    3 -> {
+                        viewModel.adb.sendToShellProcess("svc data enable")
+                        output.append("Enabling Mobile Data.\n")
+                    }
+                    4 -> {
+                        viewModel.adb.sendToShellProcess("svc data disable")
+                        output.append("Disabling Mobile Data.\n")
+                    }
+                    5 -> {
+                        viewModel.adb.sendToShellProcess("am start -a android.settings.AIRPLANE_MODE_SETTINGS && input keyevent 19 && input keyevent 23 ")
+                        output.append("Enabling Airplane Mode.\n")
+                    }
+                    6 -> {
+                        viewModel.adb.sendToShellProcess("am start -a android.settings.AIRPLANE_MODE_SETTINGS && input keyevent 19 && input keyevent 23  ")
+                        output.append("Disabling Airplane Mode.\n")
+                    }
+                    7 -> {
+                        viewModel.adb.sendToShellProcess("svc power shutdown")
+                        output.append("Shutting Down.\n")
+                    }
+                    8 -> {
+                        viewModel.adb.sendToShellProcess("svc power reboot")
+                        output.append("Rebooting Device.\n")
+                    }
+                    9 -> {
+                        if (!(commandContainer.visibility == View.VISIBLE)) {
+                            commandContainer.visibility = View.VISIBLE
+                            output.append("Typing Manual Command.\n")
+                        } else {
+                            commandContainer.visibility = View.GONE
+                        }
+
+                    }
+                }
+            }
 
         pairDialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.pair_title)
@@ -84,12 +161,27 @@ class MainActivity : AppCompatActivity() {
             return@setOnKeyListener false
         }
 
+        resetBtn.setOnClickListener { v ->
+            this.let {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    /* Unpair server and client */
+                    with(PreferenceManager.getDefaultSharedPreferences(it).edit()) {
+                        putBoolean(getString(R.string.paired_key), false)
+                        commit()
+                    }
+
+                    viewModel.adb.reset()
+                }
+                this.finish()
+            }
+        }
+
         /* Update the output text */
         viewModel.outputText.observe(this, Observer {
             output.text = it
             outputScrollView.post {
                 outputScrollView.fullScroll(ScrollView.FOCUS_DOWN)
-                command.requestFocus()
+//                command.requestFocus()
                 val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.showSoftInput(command, InputMethod.SHOW_EXPLICIT)
             }
@@ -112,6 +204,8 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     command.isEnabled = false
                     progress.visibility = View.VISIBLE
+                    dropDownMenuLayout.visibility = View.GONE
+                    resetBtn.visibility = View.VISIBLE
                 }
                 return@Observer
             }
@@ -122,6 +216,9 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     command.isEnabled = true
                     progress.visibility = View.INVISIBLE
+                    commandContainer.visibility = View.GONE
+                    resetBtn.visibility = View.GONE
+                    dropDownMenuLayout.visibility = View.VISIBLE
                 }
 
                 if (viewModel.getScriptFromIntent(intent) != null)
@@ -145,7 +242,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel.abiUnsupportedDialog(badAbiDialog)
-      //  viewModel.piracyCheck(this)
+        //  viewModel.piracyCheck(this)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        exitProcess(0)
     }
 
     /**
@@ -207,9 +309,9 @@ class MainActivity : AppCompatActivity() {
             R.id.share -> {
                 try {
                     val uri = FileProvider.getUriForFile(
-                            this,
-                            BuildConfig.APPLICATION_ID + ".provider",
-                            viewModel.adb.outputBufferFile
+                        this,
+                        BuildConfig.APPLICATION_ID + ".provider",
+                        viewModel.adb.outputBufferFile
                     )
                     val intent = Intent(Intent.ACTION_SEND)
                     with(intent) {
@@ -221,9 +323,13 @@ class MainActivity : AppCompatActivity() {
                     startActivity(intent)
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    Snackbar.make(output, getString(R.string.snackbar_intent_failed), Snackbar.LENGTH_SHORT)
-                            .setAction(getString(R.string.dismiss)) {}
-                            .show()
+                    Snackbar.make(
+                        output,
+                        getString(R.string.snackbar_intent_failed),
+                        Snackbar.LENGTH_SHORT
+                    )
+                        .setAction(getString(R.string.dismiss)) {}
+                        .show()
                 }
                 true
             }
